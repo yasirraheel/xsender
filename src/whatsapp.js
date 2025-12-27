@@ -44,15 +44,20 @@ const shouldReconnect = (sessionId) => {
 
 
 const xswpNodeSocketSet = async (sessionId, isLegacy = false, host, res = null) => {
+    console.log(`[${sessionId}] Starting WhatsApp session creation...`)
+    console.log(`[${sessionId}] isLegacy: ${isLegacy}, host: ${host}`)
     try {
         const sessionFile = (isLegacy ? 'legacy_' : 'md_') + sessionId + (isLegacy ? '.json' : '')
-        const logger = pino({ level: 'warn' })
+        console.log(`[${sessionId}] Session file: ${sessionFile}`)
+        const logger = pino({ level: 'silent' })
         const store = makeInMemoryStore({ logger })
         let state, saveState
         if (isLegacy) {
-            
+
         } else {
+            console.log(`[${sessionId}] Loading multi-device auth state...`)
             ({ state, saveCreds: saveState } = await useMultiFileAuthState(sessionsDir(sessionFile)));
+            console.log(`[${sessionId}] Auth state loaded successfully`)
         }
         /**
          * @type {import('@adiwajshing/baileys').CommonSocketConfig}
@@ -82,24 +87,40 @@ const xswpNodeSocketSet = async (sessionId, isLegacy = false, host, res = null) 
         wa.ev.on('connection.update', async (update) => {
             const { connection, lastDisconnect } = update
             const statusCode = lastDisconnect?.error?.output?.statusCode
+
+            // Enhanced logging for debugging
+            console.log(`[${sessionId}] Connection update:`, {
+                connection,
+                statusCode,
+                error: lastDisconnect?.error?.message,
+                hasQR: !!update.qr
+            })
+
             if (connection === 'open') {
+                console.log(`[${sessionId}] WhatsApp connection established successfully!`)
                 retries.delete(sessionId)
             }
             if (connection === 'close') {
+                console.log(`[${sessionId}] Connection closed. Status code:`, statusCode)
+                console.log(`[${sessionId}] Disconnect reason:`, lastDisconnect?.error)
+
                 if (statusCode === DisconnectReason.loggedOut || !shouldReconnect(sessionId)) {
+                    console.log(`[${sessionId}] Not reconnecting (logged out or max retries reached)`)
                     if (res && !res.headersSent) {
                         response(res, 400, false, 'Unable to create session.')
                     }
                     return deleteSession(sessionId, isLegacy)
                 }
+                console.log(`[${sessionId}] Attempting to reconnect...`)
                 setTimeout(
                     () => {
-                        xswpNodeSocketSet(sessionId, isLegacy, res)
+                        xswpNodeSocketSet(sessionId, isLegacy, host, res)
                     },
                     statusCode === DisconnectReason.restartRequired ? 0 : parseInt(process.env.RECONNECT_INTERVAL ?? 0)
                 )
             }
             if (update.qr) {
+                console.log(`[${sessionId}] QR code generated`)
                 if (res && !res.headersSent) {
                     try {
                         const qr = await toDataURL(update.qr)
@@ -118,8 +139,10 @@ const xswpNodeSocketSet = async (sessionId, isLegacy = false, host, res = null) 
             }
         })
     } catch (error) {
-        if (res) {
-          res.status(404).json({ error: 'An error occurred'});
+        console.error(`[${sessionId}] Error creating WhatsApp session:`, error)
+        console.error(`[${sessionId}] Error stack:`, error.stack)
+        if (res && !res.headersSent) {
+          response(res, 500, false, `Session creation error: ${error.message}`);
         }
     }
 }
