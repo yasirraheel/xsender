@@ -55,7 +55,7 @@ const xswpNodeSocketSet = async (sessionId, isLegacy = false, host, res = null) 
         if (isLegacy) {
 
         } else {
-            console.log(`[${sessionId}] Loading multi-device auth state...`)
+            console.log(`[${sessionId}] Loading multi-device auth state...`);
             ({ state, saveCreds: saveState } = await useMultiFileAuthState(sessionsDir(sessionFile)));
             console.log(`[${sessionId}] Auth state loaded successfully`)
         }
