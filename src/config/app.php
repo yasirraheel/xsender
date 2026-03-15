@@ -173,7 +173,7 @@ return [
         /*
          * Package Service Providers...
          */
-
+        Intervention\Image\ImageServiceProvider::class,
         /*
          * Application Service Providers...
          */
@@ -203,6 +203,7 @@ return [
     */
     'aliases' => [
 
+        'Image'         => Intervention\Image\Facades\Image::class,
         'Js'            => Illuminate\Support\Js::class,
         'Str'           => Illuminate\Support\Str::class,
         'Arr'           => Illuminate\Support\Arr::class,

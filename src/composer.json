@@ -25,7 +25,7 @@
         "ezyang/htmlpurifier": "^4.16",
         "gregwar/captcha-bundle": "^2.2",
         "infobip/infobip-api-php-client": "^3.2",
-        "intervention/image": "dev-main",
+        "intervention/image": "^2.7",
         "karim007/laravel-bkash-tokenize": "^2.3",
         "maatwebsite/excel": "^3.1",
         "mailgun/mailgun-php": "^3.6",
